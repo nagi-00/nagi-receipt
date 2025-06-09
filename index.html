@@ -6,7 +6,6 @@
   <title>Daily Reflection</title>
   <link rel="preload" href="./caa.ttf" as="font" type="font/ttf" crossorigin>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     @font-face {
       font-family: 'CustomFont';
@@ -14,29 +13,24 @@
       font-weight: normal;
       font-style: normal;
     }
-
     :root {
       --paper-color: #fdfdfd;
     }
-
     body {
       margin: 0;
       font-family: 'CustomFont', sans-serif;
       background-color: #f0f0f0;
     }
-
     .container {
       display: flex;
       height: 100vh;
     }
-
     .sidebar {
       width: 200px;
       padding: 20px;
       background: #fff;
       border-right: 1px solid #ccc;
     }
-
     .main {
       flex-grow: 1;
       display: flex;
@@ -46,7 +40,6 @@
       background: #f9f9f9;
       overflow-y: auto;
     }
-
     .export-area {
       background: var(--paper-color) url('./texture1.png') center/cover no-repeat;
       padding: 30px;
@@ -54,12 +47,10 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
       width: 800px;
     }
-
     h2 {
       margin-top: 0;
       letter-spacing: 2px;
     }
-
     textarea {
       width: 100%;
       height: 100px;
@@ -71,7 +62,6 @@
       resize: none;
       box-sizing: border-box;
     }
-
     .mood-options {
       display: flex;
       gap: 10px;
@@ -87,7 +77,6 @@
       transform: scale(1.3);
       border-bottom: 2px solid #000;
     }
-
     .important-tasks input {
       display: block;
       width: 100%;
@@ -95,7 +84,6 @@
       padding: 8px;
       box-sizing: border-box;
     }
-
     .controls {
       display: flex;
       justify-content: center;
@@ -103,7 +91,6 @@
       gap: 10px;
       margin-top: 20px;
     }
-
     .controls input[type="color"] {
       height: 32px;
       width: 32px;
@@ -111,7 +98,6 @@
       border: none;
       cursor: pointer;
     }
-
     .button {
       padding: 10px 24px;
       font-size: 14px;
@@ -121,7 +107,6 @@
       border: none;
       border-radius: 4px;
     }
-
     .receipt-view {
       width: 375px;
       padding: 20px;
@@ -133,9 +118,9 @@
     .receipt-section {
       margin-bottom: 12px;
     }
-    .qr-code {
-      text-align: center;
-      margin-top: 16px;
+    .barcode-svg {
+      width: 100%;
+      height: auto;
     }
   </style>
 </head>
@@ -147,24 +132,20 @@
     <div class="main">
       <div class="export-area" id="exportArea">
         <h2>MORNING</h2>
-        <textarea placeholder="Write your morning page..." id="morning"></textarea>
-
+        <textarea id="morning" placeholder="Write your morning page..."></textarea>
         <h2>MOOD</h2>
         <div class="mood-options" id="moodOptions">
-          <span data-mood="😊">😊</span><span data-mood="😐">😐</span><span data-mood="😢">😢</span><span data-mood="😠">😠</span><span data-mood="😴">😴</span>
+          <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>😴</span>
         </div>
-
         <h2>EVENING</h2>
-        <textarea placeholder="What are you grateful for today?" id="evening"></textarea>
-
+        <textarea id="evening" placeholder="What are you grateful for today?"></textarea>
         <h2>TOP 3 TASKS</h2>
         <div class="important-tasks">
-          <input type="text" placeholder="Important task 1" id="task1">
-          <input type="text" placeholder="Important task 2" id="task2">
-          <input type="text" placeholder="Important task 3" id="task3">
+          <input type="text" id="task1" placeholder="Important task 1">
+          <input type="text" id="task2" placeholder="Important task 2">
+          <input type="text" id="task3" placeholder="Important task 3">
         </div>
       </div>
-
       <div class="controls">
         <label for="paperColor">Paper</label>
         <input type="color" id="paperColor" value="#fdfdfd">
@@ -172,63 +153,68 @@
       </div>
     </div>
   </div>
-
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', () => {
       const picker = document.getElementById('paperColor');
       const exportBtn = document.getElementById('exportBtn');
       const moodOptions = document.getElementById('moodOptions');
-
       picker.addEventListener('input', e => {
         document.documentElement.style.setProperty('--paper-color', e.target.value);
       });
-
       moodOptions.querySelectorAll('span').forEach(span => {
         span.addEventListener('click', () => {
           moodOptions.querySelectorAll('span').forEach(s => s.classList.remove('selected'));
           span.classList.add('selected');
         });
       });
-
       exportBtn.addEventListener('click', async () => {
         const date = new Date();
         const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()];
-        const format = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
-
-        const morning = document.getElementById('morning').value.trim();
-        const evening = document.getElementById('evening').value.trim();
+        const formattedDate = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
+        const morning = document.getElementById('morning').value.trim() || '(No entry)';
+        const evening = document.getElementById('evening').value.trim() || '(No entry)';
         const tasks = [1,2,3].map(i => document.getElementById('task'+i).value.trim()).filter(Boolean);
         const mood = moodOptions.querySelector('.selected')?.textContent || 'None';
-
+        // Build receipt
         const wrapper = document.createElement('div');
         wrapper.className = 'receipt-view';
         wrapper.innerHTML = `
           <div class="receipt-section"><strong>MY DAILY RECORD</strong></div>
-          <div class="receipt-section">${format} | <span id='weatherText'>Loading weather...</span></div>
-          <div class="receipt-section">MORNING: <br>${morning || '(No entry)'}</div>
+          <div class="receipt-section">${formattedDate} | <span id="weatherText">Loading...</span></div>
+          <div class="receipt-section">MORNING:<br>${morning}</div>
           <div class="receipt-section">MOOD: ${mood}</div>
-          <div class="receipt-section">EVENING: <br>${evening || '(No entry)'}</div>
-          <div class="receipt-section">TOP 3 TASKS:<br>${tasks.length ? tasks.map(t=>'- '+t).join('<br>') : '(No tasks listed)'}</div>
-          <div class="qr-code" id="qrTarget"></div>
+          <div class="receipt-section">EVENING:<br>${evening}</div>
+          <div class="receipt-section">TOP 3 TASKS:<br>${tasks.length ? tasks.map(t=>'- '+t).join('<br>') : '(No tasks)'}</div>
+          <div class="receipt-section"><em>https://nagi-00.github.io/nagi-receipt/</em></div>
+          <div class="receipt-section">
+            <svg class="barcode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+              <rect x="2" y="0" width="2" height="60" />
+              <rect x="6" y="0" width="1" height="60" />
+              <rect x="10" y="0" width="3" height="60" />
+              <rect x="18" y="0" width="2" height="60" />
+              <rect x="24" y="0" width="4" height="60" />
+              <rect x="32" y="0" width="1" height="60" />
+              <rect x="36" y="0" width="2" height="60" />
+              <rect x="40" y="0" width="3" height="60" />
+              <rect x="48" y="0" width="2" height="60" />
+            </svg>
+          </div>
           <div class="receipt-section" style="text-align:center; margin-top:10px;">Thank you for surviving a day!</div>
         `;
-
         document.body.appendChild(wrapper);
-
-        await new Promise(resolve => {
-          const qrCanvas = document.createElement('canvas');
-          
-        });
-
-        const weatherText = await fetch('https://wttr.in/Sejong?format=%C+%t').then(res => res.text());
-        wrapper.querySelector('#weatherText').textContent = weatherText;
-
-        const canvas = await html2canvas(wrapper);
+        // Load weather
+        try {
+          const weather = await fetch('https://wttr.in/Sejong?format=%C+%t').then(res => res.text());
+          wrapper.querySelector('#weatherText').textContent = weather;
+        } catch(e) {
+          wrapper.querySelector('#weatherText').textContent = 'N/A';
+        }
+        // Capture
+        const canvas = await html2canvas(wrapper, {useCORS:true});
         const link = document.createElement('a');
         link.download = 'daily_receipt.png';
         link.href = canvas.toDataURL();
         link.click();
-
         document.body.removeChild(wrapper);
       });
     });

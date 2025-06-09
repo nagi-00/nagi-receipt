@@ -174,7 +174,7 @@
   </div>
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function () {
       const picker = document.getElementById('paperColor');
       const exportBtn = document.getElementById('exportBtn');
       const moodOptions = document.getElementById('moodOptions');
@@ -190,7 +190,7 @@
         });
       });
 
-      exportBtn.addEventListener('click', () => {
+      exportBtn.addEventListener('click', async () => {
         const date = new Date();
         const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()];
         const format = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
@@ -215,24 +215,26 @@
 
         document.body.appendChild(wrapper);
 
-        const qrCanvas = document.createElement('canvas');
-        QRCode.toCanvas(qrCanvas, 'https://nagi-00.github.io/nagi-receipt/', err => {
-          if (!err) {
-            wrapper.querySelector('#qrTarget').appendChild(qrCanvas);
-            fetch('https://wttr.in/Sejong?format=%C+%t')
-              .then(res => res.text())
-              .then(text => {
-                wrapper.querySelector('#weatherText').textContent = text;
-                html2canvas(wrapper).then(canvas => {
-                  const link = document.createElement('a');
-                  link.download = 'daily_receipt.png';
-                  link.href = canvas.toDataURL();
-                  link.click();
-                  document.body.removeChild(wrapper);
-                });
-              });
-          }
+        await new Promise(resolve => {
+          const qrCanvas = document.createElement('canvas');
+          QRCode.toCanvas(qrCanvas, 'https://nagi-00.github.io/nagi-receipt/', err => {
+            if (!err) {
+              wrapper.querySelector('#qrTarget').appendChild(qrCanvas);
+              resolve();
+            }
+          });
         });
+
+        const weatherText = await fetch('https://wttr.in/Sejong?format=%C+%t').then(res => res.text());
+        wrapper.querySelector('#weatherText').textContent = weatherText;
+
+        const canvas = await html2canvas(wrapper);
+        const link = document.createElement('a');
+        link.download = 'daily_receipt.png';
+        link.href = canvas.toDataURL();
+        link.click();
+
+        document.body.removeChild(wrapper);
       });
     });
   </script>

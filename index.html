@@ -85,6 +85,7 @@
     }
     .mood-options span.selected {
       transform: scale(1.3);
+      border-bottom: 2px solid #000;
     }
 
     .important-tasks input {
@@ -96,18 +97,29 @@
     }
 
     .controls {
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
       margin-top: 20px;
     }
 
     .controls input[type="color"] {
-      margin-right: 10px;
+      height: 32px;
+      width: 32px;
+      padding: 0;
+      border: none;
+      cursor: pointer;
     }
 
     .button {
-      padding: 10px 20px;
+      padding: 10px 24px;
       font-size: 14px;
       cursor: pointer;
+      background-color: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
     }
 
     .receipt-view {
@@ -139,7 +151,7 @@
 
         <h2>MOOD</h2>
         <div class="mood-options" id="moodOptions">
-          <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>😴</span>
+          <span data-mood="😊">😊</span><span data-mood="😐">😐</span><span data-mood="😢">😢</span><span data-mood="😠">😠</span><span data-mood="😴">😴</span>
         </div>
 
         <h2>EVENING</h2>
@@ -154,7 +166,7 @@
       </div>
 
       <div class="controls">
-        <label for="paperColor">Paper Color:</label>
+        <label for="paperColor">Paper</label>
         <input type="color" id="paperColor" value="#fdfdfd">
         <button class="button" id="exportBtn">Print!</button>
       </div>
@@ -179,51 +191,46 @@
       });
 
       exportBtn.addEventListener('click', () => {
-  const date = new Date();
-  const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()];
-  const format = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
+        const date = new Date();
+        const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()];
+        const format = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
 
-  const morning = document.getElementById('morning').value.trim();
-  const evening = document.getElementById('evening').value.trim();
-  const tasks = [1,2,3].map(i => document.getElementById('task'+i).value.trim()).filter(Boolean);
-  const mood = moodOptions.querySelector('.selected')?.textContent || 'None';
+        const morning = document.getElementById('morning').value.trim();
+        const evening = document.getElementById('evening').value.trim();
+        const tasks = [1,2,3].map(i => document.getElementById('task'+i).value.trim()).filter(Boolean);
+        const mood = moodOptions.querySelector('.selected')?.textContent || 'None';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'receipt-view';
-  wrapper.innerHTML = `
-    <div class="receipt-section"><strong>MY DAILY RECORD</strong></div>
-    <div class="receipt-section">${format} | <span id='weatherText'>Loading weather...</span></div>
-    <div class="receipt-section">MORNING: <br>${morning || '(No entry)'}</div>
-    <div class="receipt-section">MOOD: ${mood}</div>
-    <div class="receipt-section">EVENING: <br>${evening || '(No entry)'}</div>
-    <div class="receipt-section">TOP 3 TASKS:<br>${tasks.length ? tasks.map(t=>'- '+t).join('<br>') : '(No tasks listed)'}</div>
-    <div class="qr-code" id="qrTarget"></div>
-    <div class="receipt-section" style="text-align:center; margin-top:10px;">Thank you for surviving a day!</div>
-  `;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'receipt-view';
+        wrapper.innerHTML = `
+          <div class="receipt-section"><strong>MY DAILY RECORD</strong></div>
+          <div class="receipt-section">${format} | <span id='weatherText'>Loading weather...</span></div>
+          <div class="receipt-section">MORNING: <br>${morning || '(No entry)'}</div>
+          <div class="receipt-section">MOOD: ${mood}</div>
+          <div class="receipt-section">EVENING: <br>${evening || '(No entry)'}</div>
+          <div class="receipt-section">TOP 3 TASKS:<br>${tasks.length ? tasks.map(t=>'- '+t).join('<br>') : '(No tasks listed)'}</div>
+          <div class="qr-code" id="qrTarget"></div>
+          <div class="receipt-section" style="text-align:center; margin-top:10px;">Thank you for surviving a day!</div>
+        `;
 
-  document.body.appendChild(wrapper);
+        document.body.appendChild(wrapper);
 
-  const qrCanvas = document.createElement('canvas');
-  QRCode.toCanvas(qrCanvas, 'https://nagi-00.github.io/nagi-receipt/', err => {
-    if (!err) {
-      wrapper.querySelector('#qrTarget').appendChild(qrCanvas);
-      fetch('https://wttr.in/Sejong?format=%C+%t')
-        .then(res => res.text())
-        .then(text => {
-          wrapper.querySelector('#weatherText').textContent = text;
-          html2canvas(wrapper).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'daily_receipt.png';
-            link.href = canvas.toDataURL();
-            link.click();
-            document.body.removeChild(wrapper);
-          });
-        });
-    }
-  });
-});
+        const qrCanvas = document.createElement('canvas');
+        QRCode.toCanvas(qrCanvas, 'https://nagi-00.github.io/nagi-receipt/', err => {
+          if (!err) {
+            wrapper.querySelector('#qrTarget').appendChild(qrCanvas);
+            fetch('https://wttr.in/Sejong?format=%C+%t')
+              .then(res => res.text())
+              .then(text => {
+                wrapper.querySelector('#weatherText').textContent = text;
+                html2canvas(wrapper).then(canvas => {
+                  const link = document.createElement('a');
+                  link.download = 'daily_receipt.png';
+                  link.href = canvas.toDataURL();
+                  link.click();
+                  document.body.removeChild(wrapper);
+                });
               });
-            });
           }
         });
       });

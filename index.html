@@ -46,11 +46,7 @@
     }
 
     .export-area {
-      background-color: var(--paper-color);
-      background-image: url('./texture1.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
+      background: var(--paper-color) url('./texture1.png') center/cover no-repeat;
       padding: 30px;
       border-radius: 6px;
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -72,6 +68,21 @@
       border: 1px solid #ccc;
       resize: none;
       box-sizing: border-box;
+    }
+
+    .mood-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .mood-options span {
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s;
+    }
+    .mood-options span.selected {
+      transform: scale(1.3);
     }
 
     .important-tasks input {
@@ -96,6 +107,15 @@
       font-size: 14px;
       cursor: pointer;
     }
+
+    .receipt-view {
+      width: 375px;
+      padding: 20px;
+      background: var(--paper-color) url('./texture1.png') center/cover no-repeat;
+      font-size: 12px;
+      line-height: 1.6;
+      font-family: 'CustomFont', monospace;
+    }
   </style>
 </head>
 <body>
@@ -110,7 +130,9 @@
         <textarea placeholder="Write your morning page..." id="morning"></textarea>
 
         <h2>MOOD</h2>
-        <textarea placeholder="How do you feel today?" id="mood"></textarea>
+        <div class="mood-options" id="moodOptions">
+          <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>😴</span>
+        </div>
 
         <h2>EVENING</h2>
         <textarea placeholder="What are you grateful for today?" id="evening"></textarea>
@@ -126,7 +148,7 @@
       <div class="controls">
         <label for="paperColor">Paper Color:</label>
         <input type="color" id="paperColor" value="#fdfdfd">
-        <button class="button" id="exportBtn">Export as Image</button>
+        <button class="button" id="exportBtn">Print!</button>
       </div>
     </div>
   </div>
@@ -137,17 +159,35 @@
       const picker = document.getElementById('paperColor');
       const exportBtn = document.getElementById('exportBtn');
       const exportArea = document.getElementById('exportArea');
+      const moodOptions = document.getElementById('moodOptions');
 
+      // Paper color handling
       picker.addEventListener('input', e => {
         document.documentElement.style.setProperty('--paper-color', e.target.value);
       });
 
+      // Mood tracker
+      moodOptions.querySelectorAll('span').forEach(span => {
+        span.addEventListener('click', () => {
+          moodOptions.querySelectorAll('span').forEach(s => s.classList.remove('selected'));
+          span.classList.add('selected');
+        });
+      });
+
+      // Export to image with receipt style
       exportBtn.addEventListener('click', () => {
-        html2canvas(exportArea).then(canvas => {
+        const clone = exportArea.cloneNode(true);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'receipt-view';
+        wrapper.appendChild(clone);
+        document.body.appendChild(wrapper);
+
+        html2canvas(wrapper).then(canvas => {
           const link = document.createElement('a');
-          link.download = 'daily_record.png';
+          link.download = 'daily_receipt.png';
           link.href = canvas.toDataURL();
           link.click();
+          document.body.removeChild(wrapper);
         }).catch(err => console.error('Export failed:', err));
       });
     });

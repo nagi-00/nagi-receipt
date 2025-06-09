@@ -217,12 +217,7 @@
 
         await new Promise(resolve => {
           const qrCanvas = document.createElement('canvas');
-          QRCode.toCanvas(qrCanvas, 'https://nagi-00.github.io/nagi-receipt/', err => {
-            if (!err) {
-              wrapper.querySelector('#qrTarget').appendChild(qrCanvas);
-              resolve();
-            }
-          });
+          
         });
 
         const weatherText = await fetch('https://wttr.in/Sejong?format=%C+%t').then(res => res.text());

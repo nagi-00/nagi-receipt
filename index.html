@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Reflection</title>
   <link rel="preload" href="./caa.ttf" as="font" type="font/ttf" crossorigin>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     @font-face {
       font-family: 'CustomFont';
@@ -116,13 +118,19 @@
       line-height: 1.6;
       font-family: 'CustomFont', monospace;
     }
+    .receipt-section {
+      margin-bottom: 12px;
+    }
+    .qr-code {
+      text-align: center;
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="sidebar">
       <h3>Calendar</h3>
-      <!-- Calendar Placeholder -->
     </div>
     <div class="main">
       <div class="export-area" id="exportArea">
@@ -153,20 +161,16 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const picker = document.getElementById('paperColor');
       const exportBtn = document.getElementById('exportBtn');
-      const exportArea = document.getElementById('exportArea');
       const moodOptions = document.getElementById('moodOptions');
 
-      // Paper color handling
       picker.addEventListener('input', e => {
         document.documentElement.style.setProperty('--paper-color', e.target.value);
       });
 
-      // Mood tracker
       moodOptions.querySelectorAll('span').forEach(span => {
         span.addEventListener('click', () => {
           moodOptions.querySelectorAll('span').forEach(s => s.classList.remove('selected'));
@@ -174,21 +178,42 @@
         });
       });
 
-      // Export to image with receipt style
       exportBtn.addEventListener('click', () => {
-        const clone = exportArea.cloneNode(true);
+        const date = new Date();
+        const weekday = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+        const format = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} (${weekday})`;
+
+        const morning = document.getElementById('morning').value.trim();
+        const evening = document.getElementById('evening').value.trim();
+        const tasks = [1,2,3].map(i => document.getElementById('task'+i).value.trim()).filter(Boolean);
+        const mood = moodOptions.querySelector('.selected')?.textContent || 'None';
+
         const wrapper = document.createElement('div');
         wrapper.className = 'receipt-view';
-        wrapper.appendChild(clone);
-        document.body.appendChild(wrapper);
+        wrapper.innerHTML = `
+          <div class="receipt-section"><strong>MY DAILY RECORD</strong></div>
+          <div class="receipt-section">${format}</div>
+          <div class="receipt-section">MORNING: <br>${morning || '(No entry)'}</div>
+          <div class="receipt-section">MOOD: ${mood}</div>
+          <div class="receipt-section">EVENING: <br>${evening || '(No entry)'}</div>
+          <div class="receipt-section">TOP 3 TASKS:<br>${tasks.length ? tasks.map(t=>'- '+t).join('<br>') : '(No tasks listed)'}</div>
+          <div class="qr-code" id="qrTarget"></div>
+          <div class="receipt-section" style="text-align:center; margin-top:10px;">Thank you for surviving today.</div>
+        `;
 
-        html2canvas(wrapper).then(canvas => {
-          const link = document.createElement('a');
-          link.download = 'daily_receipt.png';
-          link.href = canvas.toDataURL();
-          link.click();
-          document.body.removeChild(wrapper);
-        }).catch(err => console.error('Export failed:', err));
+        document.body.appendChild(wrapper);
+        QRCode.toCanvas(document.createElement('canvas'), 'https://nagi-00.github.io/nagi-receipt/', (err, canvas) => {
+          if (!err) {
+            document.getElementById('qrTarget').appendChild(canvas);
+            html2canvas(wrapper).then(canvas => {
+              const link = document.createElement('a');
+              link.download = 'daily_receipt.png';
+              link.href = canvas.toDataURL();
+              link.click();
+              document.body.removeChild(wrapper);
+            });
+          }
+        });
       });
     });
   </script>
